@@ -119,7 +119,7 @@
             cursor: pointer;
             display: none;
             z-index: 101;
-        }/
+        }
         @media (max-width: 768px) {
             #sidebar {
                 transform: translateX(-320px);
@@ -377,9 +377,12 @@
             gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0);
             gl.enableVertexAttribArray(positionLocation);
 
+            // Update iResolution
+            gl.uniform2f(iResolutionLocation, canvas.width, canvas.height);
+
             updateShaderUniforms();
 
-            resizeCanvasToDisplaySize();
+            // resizeCanvasToDisplaySize();
         }
 
         function updateShaderUniforms() {
@@ -454,7 +457,6 @@
             mediaRecorder.start();
             isRecording = true;
             startRecordingButton.textContent = 'Stop Recording';
-            startRecordingButton.style.backgroundColor = '#F44336';
             startRecordingButton.style.backgroundColor = '#D32F2F';
         }
 
@@ -462,7 +464,7 @@
             mediaRecorder.stop();
             isRecording = false;
             startRecordingButton.textContent = 'Start Recording/ start effects';
-            startRecordingButton.style.backgroundColor = '#63ff6a';
+            startRecordingButton.style.backgroundColor = '#424542';
         }
 
         function showModal(blob) {
