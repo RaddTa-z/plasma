@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>WebGL Shader with Recording</title>
+    <title>WebGL Shader</title>
     <style>
         body { margin: 0; }
         canvas { display: block; width: 100%; height: 100%; }
@@ -38,62 +38,10 @@
             width: 100px;
             height: 30px;
         }
-        .recording-controls {
-            margin-top: 20px;
-            padding-top: 20px;
-            border-top: 1px solid #ccc;
-        }
-        .recording-controls button {
-            padding: 10px 20px;
-            margin-right: 10px;
-            background-color: #4CAF50;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 16px;
-        }
-        .recording-controls button:disabled {
-            background-color: #cccccc;
-            cursor: not-allowed;
-        }
-        .recording-controls button.stop {
-            background-color: #f44336;
-        }
-        .recording-status {
-            color: #f44336;
-            font-weight: bold;
-            margin-top: 10px;
-            display: none;
-        }
-        #downloadLink {
-            display: none;
-            margin-top: 10px;
-            padding: 10px;
-            background-color: #2196F3;
-            color: white;
-            text-decoration: none;
-            border-radius: 4px;
-            font-size: 16px;
-        }
-        .recording-indicator {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            padding: 10px 20px;
-            background-color: #f44336;
-            color: white;
-            border-radius: 4px;
-            display: none;
-        }
-        .recording-indicator.active {
-            display: block;
-        }
     </style>
 </head>
 <body>
 <canvas id="glcanvas"></canvas>
-<div id="recordingIndicator" class="recording-indicator">Recording...</div>
 <form id="shaderForm">
     <label>Effect source:</label>
     <textarea id="effectSource" rows="4" cols="50">vec2 effect(vec2 p, float i, float time) {
@@ -120,14 +68,7 @@
     <input type="number" id="depth" value="5" step="1" min="1" max="200"><br>
     
     <input type="submit" value="Update shader">
-
-    <div class="recording-controls">
-        <button id="startRecording" type="button">Start Recording</button>
-        <button id="stopRecording" type="button" class="stop" disabled>Stop Recording</button>
-        <a id="downloadLink" download="shader-recording.webm">Download Recording</a>
-    </div>
 </form>
-
 <script type="text/javascript">
     var canvas = document.getElementById('glcanvas');
     var gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
@@ -135,19 +76,6 @@
     if (!gl) {
         alert('Unable to initialize WebGL. Your browser may not support it.');
         throw 'Unable to initialize WebGL';
-    }
-
-    let mediaRecorder = null;
-    let recordedChunks = [];
-    const startRecordingBtn = document.getElementById('startRecording');
-    const stopRecordingBtn = document.getElementById('stopRecording');
-    const downloadLink = document.getElementById('downloadLink');
-    const recordingIndicator = document.getElementById('recordingIndicator');
-
-    if (!navigator.mediaDevices && !navigator.mediaDevices.getUserMedia) {
-        console.warn('Recording features are not supported in this browser');
-        startRecordingBtn.disabled = true;
-        startRecordingBtn.title = 'Recording not supported in this browser';
     }
 
     function hexToRGB(hex) {
@@ -252,6 +180,7 @@
         gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0);
         gl.enableVertexAttribArray(positionLocation);
 
+        // Set colors
         const color1 = hexToRGB(document.getElementById('color1').value);
         const color2 = hexToRGB(document.getElementById('color2').value);
         const color3 = hexToRGB(document.getElementById('color3').value);
@@ -284,70 +213,7 @@
         );
     }
 
-    function startRecording() {
-        recordedChunks = [];
-        const stream = canvas.captureStream(30); // 30 FPS
-
-        const mimeTypes = [
-            'video/webm;codecs=vp9',
-            'video/webm;codecs=vp8',
-            'video/webm'
-        ];
-        
-        let selectedMimeType = null;
-        for (const mimeType of mimeTypes) {
-            if (MediaRecorder.isTypeSupported(mimeType)) {
-                selectedMimeType = mimeType;
-                break;
-            }
-        }
-
-        if (!selectedMimeType) {
-            alert('No supported recording MIME type found');
-            return;
-        }
-
-        const options = {
-            mimeType: selectedMimeType,
-            videoBitsPerSecond: 2500000 // 2.5 Mbps
-        };
-
-        try {
-            mediaRecorder = new MediaRecorder(stream, options);
-        } catch (e) {
-            alert('Error creating MediaRecorder: ' + e);
-            return;
-        }
-
-        mediaRecorder.ondataavailable = (event) => {
-            if (event.data && event.data.size > 0) {
-                recordedChunks.push(event.data);
-            }
-        };
-
-        mediaRecorder.onstop = () => {
-            const blob = new Blob(recordedChunks, { type: selectedMimeType });
-            downloadLink.href = URL.createObjectURL(blob);
-            downloadLink.style.display = 'inline-block';
-            recordingIndicator.classList.remove('active');
-        };
-
-        mediaRecorder.start(100); // Collect data every 100ms
-        startRecordingBtn.disabled = true;
-        stopRecordingBtn.disabled = false;
-        downloadLink.style.display = 'none';
-        recordingIndicator.classList.add('active');
-    }
-
-    function stopRecording() {
-        if (mediaRecorder && mediaRecorder.state !== 'inactive') {
-            mediaRecorder.stop();
-            startRecordingBtn.disabled = false;
-            stopRecordingBtn.disabled = true;
-        }
-    }
-
-    // Event listeners
+    // Add event listeners
     document.getElementById('speed').addEventListener('change', update);
     document.getElementById('resolution').addEventListener('change', update);
     document.getElementById('depth').addEventListener('change', update);
@@ -355,14 +221,6 @@
     document.getElementById('color2').addEventListener('change', update);
     document.getElementById('color3').addEventListener('change', update);
     document.getElementById('shaderForm').addEventListener('submit', update);
-    startRecordingBtn.addEventListener('click', startRecording);
-    stopRecordingBtn.addEventListener('click', stopRecording);
-
-    window.addEventListener('beforeunload', () => {
-        if (mediaRecorder && mediaRecorder.state === 'recording') {
-            mediaRecorder.stop();
-        }
-    });
 
     // Initial setup
     createShaderProgram(
